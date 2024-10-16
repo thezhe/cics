@@ -1,6 +1,6 @@
 # cics
 
-Copy `cics` into a linux directory and start using container images as CLIs
+Use containers as CLIs in under 200 lines of POSIX shell code
 
 ## Versioning
 
