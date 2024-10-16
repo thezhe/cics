@@ -1,10 +1,6 @@
 # cics
 
-Copy `cics` into a linux directory and start using container images as CLIs.
-
-## Usage
-
-See `cics -h` output
+Copy `cics` into a linux directory and start using container images as CLIs
 
 ## Versioning
 

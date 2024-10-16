@@ -6,11 +6,11 @@ SCRIPT_PATH="$(
 )"
 ## Help
 print_help() {
-    printf "Cics Installs Container Shims\n\nUsage:\n    %-16s\n\nCommands:\n    %-16s\n    %-16s\n    %-16s\n    %-16s\n\nRun 'cics COMMAND --help' for more information on a command\n\nExamples:\n    %-16s\n    %-16s\n    %-16s\n    %-16s\n    %-16s\n\nPreconditions:\n    %-16s\n    %-16s\n    %-16s\n" \
+    printf "Cics Installs Container Shims\n\nUsage:\n    %-16s\n\nCommands:\n    %-16s\n    %-16s\n    %-16s\n    %-16s\n\nRun 'cics COMMAND --help' for more information on a command\n\nExamples:\n    %-16s\n    %-16s\n    %-16s\n    %-16s\n    %-16s\n\nLimitations:\n    %-16s\n    %-16s\n" \
         'cics [-h, --help] COMMAND' \
         'install' 'list' 'run' 'uninstall' \
         'cics install ghcr.io/hadolint/hadolint' 'cics list' 'cics run hadolint -v' 'hadolint -v' 'cics uninstall hadolint' \
-        'POSIX compliant sh' 'No access to directories above current working directory' 'No port forwarding'
+        'No access to directories above current working directory' 'No port forwarding'
 }
 print_install_help() {
     printf 'Install one or more container shims\n\nUsage:\n     %-16s\n' \
@@ -128,18 +128,33 @@ cics_uninstall() {
 
     rm -f -- "${@}"
 }
-# TODO error if wrong num args
 case "${COMMAND}" in
     install)
+        if [ '0' -eq "${#}" ]; then
+            print_install_help
+            exit 1
+        fi
         cics_install "${@}"
         ;;
     list)
+        if [ '0' -ne "${#}" ]; then
+            print_list_help
+            exit 1
+        fi
         cics_list
         ;;
     run)
+        if [ '1' -ne "${#}" ]; then
+            print_run_help
+            exit 1
+        fi
         cics_run "${1}"
         ;;
     uninstall)
+        if [ '0' -eq "${#}" ]; then
+            print_uninstall_help
+            exit 1
+        fi
         cics_uninstall "${@}"
         ;;
     *)
