@@ -1,0 +1,150 @@
+#!/usr/bin/env sh
+set -e
+SCRIPT_PATH="$(
+    cd -- "$(dirname "$0")" >/dev/null 2>&1 || exit
+    pwd -P
+)"
+## Help
+print_help() {
+    printf "Cics Installs Container Shims\n\nUsage:\n    %-16s\n\nCommands:\n    %-16s\n    %-16s\n    %-16s\n    %-16s\n\nRun 'cics COMMAND --help' for more information on a command\n\nExamples:\n    %-16s\n    %-16s\n    %-16s\n    %-16s\n    %-16s\n\nPreconditions:\n    %-16s\n    %-16s\n    %-16s\n" \
+        'cics [-h, --help] COMMAND' \
+        'install' 'list' 'run' 'uninstall' \
+        'cics install ghcr.io/hadolint/hadolint' 'cics list' 'cics run hadolint -v' 'hadolint -v' 'cics uninstall hadolint' \
+        'POSIX compliant sh' 'No access to directories above current working directory' 'No port forwarding'
+}
+print_install_help() {
+    printf 'Install one or more container shims\n\nUsage:\n     %-16s\n' \
+        'cics install IMAGE...'
+}
+
+print_list_help() {
+    printf 'List installed shims\n\nUsage:\n     %-16s\n' \
+        'cics list'
+}
+print_run_help() {
+    printf 'Manually run a shim. Used by cics to interpret shims.\n\nUsage:\n     %-16s\n' \
+        'cics run SHIM'
+}
+print_uninstall_help() {
+    printf 'Uninstall one or more shims\n\nUsage:\n     %-16s\n' \
+        'cics uninstall SHIM...'
+}
+## CLI
+if [ 0 -eq "${#}" ]; then
+    print_help
+    exit 1
+fi
+case "${1}" in
+    -h | --help)
+        print_help
+        exit 0
+        ;;
+    *) ;;
+esac
+COMMAND="${1}"
+case "${2}" in
+    -h | --help)
+        case "${COMMAND}" in
+            install)
+                print_install_help
+                ;;
+            list)
+                print_list_help
+                ;;
+            run)
+                print_run_help
+                ;;
+            uninstall)
+                print_uninstall_help
+                ;;
+            *)
+                print_help
+                exit 1
+                ;;
+        esac
+        exit 0
+        ;;
+    *) ;;
+esac
+shift
+## Process
+CICS_SHEBANG='#!/usr/bin/env -S cics run'
+# cics_list
+cics_list() {
+    for CICS_LIST_FILE in "${SCRIPT_PATH}/"*; do
+        if [ -f "${CICS_LIST_FILE}" ] && head -1 "${CICS_LIST_FILE}" | grep -q "^${CICS_SHEBANG}\$"; then
+            basename "${CICS_LIST_FILE}"
+        fi
+    done
+}
+# TODO multiple IMAGE and SHIM
+# cics_install IMAGE...
+cics_install() {
+    CICS_INSTALL_EXISTS_LIST="$(cics_list)"
+
+    for CICS_INSTALL_ARG in "${@}"; do
+        CICS_INSTALL_ENTRYPOINT="${CICS_INSTALL_ARG##*/}"
+        CICS_INSTALL_ENTRYPOINT="${CICS_INSTALL_ENTRYPOINT%%:*}"
+
+        if echo "${CICS_INSTALL_EXISTS_LIST}" | grep -q "^${CICS_INSTALL_ENTRYPOINT}\$"; then
+            echo "ERROR: '${CICS_INSTALL_ENTRYPOINT}' is already a container shim. Reinstall to change container repository and/or tag."
+            return 1
+        fi
+
+        CICS_INSTALL_TARGET="${SCRIPT_PATH}/${CICS_INSTALL_ENTRYPOINT}"
+
+        printf '%s\n%s\n' "${CICS_SHEBANG}" "${CICS_INSTALL_ARG}" >"${CICS_INSTALL_TARGET}"
+        chmod +x "${CICS_INSTALL_TARGET}"
+    done
+}
+# cics_run SHIM
+cics_run() {
+    CICS_RUN_IMAGE="$(tail -n 1 "${1}")"
+    CICS_RUN_ENTRYPOINT="${CICS_RUN_IMAGE##*/}"
+    CICS_RUN_ENTRYPOINT="${CICS_RUN_ENTRYPOINT%%:*}"
+    if [ -z "${CICS_RUN_IMAGE}" ] || [ -z "${CICS_RUN_ENTRYPOINT}" ]; then
+        return 1
+    fi
+
+    for CICS_RUN_ARG in "${@}"; do
+        set -- "${@}" "$(echo "${CICS_RUN_ARG}" | sed -e "s|${PWD}|/mnt|g" || true)"
+        shift
+    done
+
+    docker run -iq --rm --pull always -v "${PWD}:/mnt" -w /mnt "${CICS_RUN_IMAGE}" "${CICS_RUN_ENTRYPOINT}" "${@}"
+}
+# cics_uninstall SHIM...
+cics_uninstall() {
+    CICS_UNINSTALL_EXISTS_LIST="$(cics_list)"
+
+    for CICS_UNINSTALL_ARG in "${@}"; do
+        if ! echo "${CICS_UNINSTALL_EXISTS_LIST}" | grep -q "^${CICS_UNINSTALL_ARG}\$"; then
+            echo "ERROR: ${CICS_UNINSTALL_ARG} is not a container shim"
+            return 1
+        fi
+        set -- "${@}" "${SCRIPT_PATH}/${CICS_UNINSTALL_ARG}"
+        shift
+    done
+
+    rm -f -- "${@}"
+}
+# TODO error if wrong num args
+case "${COMMAND}" in
+    install)
+        cics_install "${@}"
+        ;;
+    list)
+        cics_list
+        ;;
+    run)
+        cics_run "${1}"
+        ;;
+    uninstall)
+        cics_uninstall "${@}"
+        ;;
+    *)
+        print_help
+        exit 1
+        ;;
+esac
+exit 0
