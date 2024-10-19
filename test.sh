@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# shellcheck disable=SC2251 # '&& exit 1' inverts errexit, but '!' also inverts and replaces command exit codes
+# shellcheck disable=SC2251 # '&& exit 1' inverts errexit, but '!' also inverts exit codes
 ## Strict mode
 set -eu
 IFS="$(printf "\n\t")"

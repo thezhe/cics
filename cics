@@ -4,12 +4,12 @@ set -eu
 IFS="$(printf "\n\t")"
 readonly IFS
 ## Prologue
-if [ -z "$(command -v docker || true)" ]; then
-    echo 'ERROR: Missing required command '\''docker'\'''
+if [ -z "$(command -v podman || true)" ]; then
+    echo 'ERROR: Missing required command '\''podman'\'''
     exit 1
 fi
 cics_script_path="$(
-    script_directory="$(dirname "${0}")"
+    script_directory="$(dirname -- "${0}")"
     cd -- "${script_directory}" >/dev/null 2>&1
     pwd -P
 )"
@@ -79,6 +79,11 @@ shift
 # cics_list
 cics_list() {
     (
+        if [ 0 -ne "${#}" ]; then
+            cics_print_list_help
+            exit 1
+        fi
+
         for filename in "${cics_script_path}/"*; do
             if [ -f "${filename}" ] && head -1 "${filename}" | grep -q "^${cics_shebang}\$"; then
                 basename "${filename}"
@@ -89,6 +94,11 @@ cics_list() {
 # cics_install IMAGE...
 cics_install() {
     (
+        if [ 0 -eq "${#}" ]; then
+            cics_print_install_help
+            exit 1
+        fi
+
         installed_shims="$(cics_list)"
         readonly installed_shims
 
@@ -110,6 +120,11 @@ cics_install() {
 # cics_run SHIM
 cics_run() {
     (
+        if [ 0 -eq "${#}" ]; then
+            cics_print_run_help
+            exit 1
+        fi
+
         image="$(tail -n 1 "${1}")"
         entrypoint="${image##*/}"
         entrypoint="${entrypoint%%:*}"
@@ -120,16 +135,22 @@ cics_run() {
         shift
 
         for arg in "${@}"; do
-            set -- "${@}" "$(echo "${arg}" | sed -e "s|${PWD}|/mnt|" || true)"
+            command_arg="$(echo "${arg}" | sed -e "s|${PWD}|/mnt|")"
+            set -- "${@}" "${command_arg}"
             shift
         done
 
-        docker run -iq --rm --entrypoint "${entrypoint}" --pull always -v "${PWD}:/mnt" -w /mnt "${image}" "${@}"
+        podman run -iq --rm --entrypoint "${entrypoint}" -v "${PWD}:/mnt" -w /mnt "${image}" "${@}"
     )
 }
 # cics_uninstall SHIM...
 cics_uninstall() {
     (
+        if [ 0 -eq "${#}" ]; then
+            cics_print_uninstall_help
+            exit 1
+        fi
+
         installed_shims="$(cics_list)"
         readonly installed_shims
 
@@ -147,31 +168,15 @@ cics_uninstall() {
 }
 case "${cics_command}" in
     install)
-        if [ 0 -eq "${#}" ]; then
-            cics_print_install_help
-            exit 1
-        fi
         cics_install "${@}"
         ;;
     list)
-        if [ 0 -ne "${#}" ]; then
-            cics_print_list_help
-            exit 1
-        fi
-        cics_list
+        cics_list "${@}"
         ;;
     run)
-        if [ 0 -eq "${#}" ]; then
-            cics_print_run_help
-            exit 1
-        fi
         cics_run "${@}"
         ;;
     uninstall)
-        if [ 0 -eq "${#}" ]; then
-            cics_print_uninstall_help
-            exit 1
-        fi
         cics_uninstall "${@}"
         ;;
     *)
