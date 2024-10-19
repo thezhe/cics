@@ -4,7 +4,7 @@ set -eu
 IFS="$(printf "\n\t")"
 readonly IFS
 ## Prologue
-if [ -z "$(command -v podman || true)" ]; then
+if ! command -v podman >/dev/null 2>&1; then
     echo 'ERROR: Missing required command '\''podman'\'''
     exit 1
 fi
