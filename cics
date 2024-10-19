@@ -75,7 +75,7 @@ if [ 1 -lt "${#}" ]; then
     esac
 fi
 shift
-## Process
+## Commands
 # cics_list
 cics_list() {
     (
@@ -110,7 +110,7 @@ cics_install() {
 # cics_run SHIM
 cics_run() {
     (
-        image="$(tail -n 1 "${cics_script_path}/${1}")"
+        image="$(tail -n 1 "${1}")"
         entrypoint="${image##*/}"
         entrypoint="${entrypoint%%:*}"
         if [ -z "${entrypoint}" ]; then
