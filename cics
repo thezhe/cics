@@ -117,6 +117,7 @@ cics_run() {
             exit 1
         fi
         readonly entrypoint image
+        shift
 
         for arg in "${@}"; do
             set -- "${@}" "$(echo "${arg}" | sed -e "s|${PWD}|/mnt|" || true)"
