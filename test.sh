@@ -1,41 +1,44 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC2251 # '&& exit 1' inverts errexit, but '!' also inverts and replaces command exit codes
 ## Strict mode
 set -eu
 IFS="$(printf "\n\t")"
 readonly IFS
 ## Prologue
 test_script_path="$(
-    script_directory="$(dirname "${0}")"
-    cd -- "${script_directory}"
+    script_directory="$(dirname -- "${0}")"
+    cd -- "${script_directory}" >/dev/null 2>&1
     pwd -P
 )"
-cics="${test_script_path}/cics"
-readonly cics test_script_path
+test_cics="${test_script_path}/cics"
+readonly test_cics test_script_path
 ## Pass-fail tests
 (
     set -x
     # Help
-    "${cics}" -h
-    ! "${cics}"
-    "${cics}" install -h
-    "${cics}" list -h
-    "${cics}" run -h
-    "${cics}" uninstall -h
-    ! "${cics}" not_a_command -h
-    ! "${cics}" not_a_command
+    "${test_cics}" -h
+    ! "${test_cics}"
+    "${test_cics}" install -h
+    "${test_cics}" list -h
+    "${test_cics}" run -h
+    "${test_cics}" uninstall -h
+    ! "${test_cics}" not_a_command -h
+    ! "${test_cics}" not_a_command
     # Commands
-    "${cics}" install ghcr.io/hadolint/hadolint docker.io/koalaman/shellcheck:stable
-    ! "${cics}" install ghcr.io/hadolint/hadolint
-    ! "${cics}" install
-    "${cics}" list
-    ! "${cics}" list hadolint
-    "${cics}" run "${test_script_path}/hadolint" --help
-    "${cics}" run "${test_script_path}/shellcheck" --help
-    ! "${cics}" run
-    "${cics}" uninstall hadolint shellcheck
-    ! "${cics}" uninstall hadolint shellcheck
-    ! "${cics}" uninstall
+    "${test_cics}" install docker.io/rhysd/actionlint:latest docker.io/koalaman/shellcheck:stable ghcr.io/hadolint/hadolint
+    ! "${test_cics}" install ghcr.io/hadolint/hadolint
+    ! "${test_cics}" install
+    "${test_cics}" list
+    ! "${test_cics}" list hadolint
+    "${test_cics}" run "${test_script_path}/actionlint" -version
+    "${test_cics}" run "${test_script_path}/hadolint" --help
+    "${test_cics}" run "${test_script_path}/shellcheck" --help
+    ! "${test_cics}" run
+    "${test_cics}" uninstall actionlint hadolint shellcheck
+    ! "${test_cics}" uninstall actionlint hadolint shellcheck
+    ! "${test_cics}" uninstall
     # Post conditions (idempotency)
+    ! [ -f "${test_script_path}/actionlint" ]
     ! [ -f "${test_script_path}/hadolint" ]
     ! [ -f "${test_script_path}/shellcheck" ]
 ) >/dev/null
