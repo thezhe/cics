@@ -1,6 +1,6 @@
 # cics
 
-Use containers as CLIs in under 200 lines of POSIX shell code
+Use containers as CLIs in under 200 lines of POSIX shell
 
 ## Versioning
 
