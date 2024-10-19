@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 ## Strict mode
 set -eu
-IFS="(printf '\n\t')"
+IFS="$(printf "\n\t")"
 readonly IFS
 ## Prologue
-if ! [ "$(command -v docker)" ]; then
+if [ -z "$(command -v docker || true)" ]; then
     echo 'ERROR: Missing required command '\''docker'\'''
     exit 1
 fi
@@ -119,7 +119,7 @@ cics_run() {
         readonly entrypoint image
 
         for arg in "${@}"; do
-            set -- "${@}" "$(echo "${arg}" | sed -e "s|${PWD}|/mnt|")"
+            set -- "${@}" "$(echo "${arg}" | sed -e "s|${PWD}|/mnt|" || true)"
             shift
         done
 
