@@ -124,7 +124,7 @@ cics_run() {
             shift
         done
 
-        docker run -iq --rm --pull always -v "${PWD}:/mnt" -w /mnt "${image}" "${entrypoint}" "${@}"
+        docker run -iq --rm --entrypoint "${entrypoint}" --pull always -v "${PWD}:/mnt" -w /mnt "${image}" "${@}"
     )
 }
 # cics_uninstall SHIM...
