@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 ## Strict mode
 set -eu
-IFS="(printf '\n\t')"
+IFS="$(printf "\n\t")"
 readonly IFS
 ## Prologue
 test_script_path="$(
