@@ -169,7 +169,9 @@ cics_run() {
             shift
         done
 
-        podman run -iq --rm --entrypoint "${entrypoint}" -v "${PWD}:/mnt" -w /mnt "${image}" "${@}"
+        # See below for option justifications
+        # https://github.com/hadolint/hadolint/issues/743
+        podman run -iq --rm --entrypoint "${entrypoint}" --env 'HOME=/' -v "${PWD}:/mnt" -w /mnt "${image}" "${@}"
     )
 }
 # cics_uninstall SHIM...
