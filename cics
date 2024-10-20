@@ -17,22 +17,25 @@ cics_shebang='#!/usr/bin/env -S cics run'
 readonly cics_shebang cics_script_path PWD
 ## Help
 cics_print_help() {
-    printf 'Cics Installs Container Shims\n\nUsage:\n    %-40s\n\nCommands:\n    %-40s\n    %-40s\n    %-40s\n    %-40s\n\nExamples:\n    %-40s%-40s\n    %-40s%-40s\n\nRun '\''cics COMMAND --help'\'' for more information on a command\n' \
+    printf 'Cics Installs Container Shims\n\nUsage:\n    %-40s\n\nCommands:\n    %-40s\n    %-40s\n    %-40s\n    %-40s\n    %-40s\n\nExamples:\n    %-40s%-40s\n    %-40s%-40s\n\nRun '\''cics COMMAND --help'\'' for more information on a command\n' \
         'cics [-h, --help] COMMAND' \
-        'install' 'list' 'run' 'uninstall' \
+        'install' 'list' 'run' 'uninstall' 'upgrade' \
         'cics install ghcr.io/hadolint/hadolint' '# Install hadolint shim' 'hadolint -v' '# Run shim without access to parent directories or ports'
 }
 cics_print_install_help() {
-    printf 'Install one or more container shims\n\nUsage:\n     %-40s\n' 'cics install image...'
+    printf 'Pull one or more images and install their shims\n\nUsage:\n     %-40s\n' 'cics install image...'
 }
 cics_print_list_help() {
     printf 'List installed shims\n\nUsage:\n     %-40s\n' 'cics list'
 }
 cics_print_run_help() {
-    printf 'Manually run a shim. Used by cics to interpret shims.\n\nUsage:\n     %-40s\n' 'cics run SHIM'
+    printf 'Manually run a shim\n\nUsage:\n     %-40s\n' 'cics run SHIM'
 }
 cics_print_uninstall_help() {
     printf 'Uninstall one or more shims\n\nUsage:\n     %-40s\n' 'cics uninstall SHIM...'
+}
+cics_print_upgrade_help() {
+    printf 'Pull all shim images\n\nUsage:\n     %-40s\n' 'cics upgrade'
 }
 ## CLI
 if [ 0 -eq "${#}" ]; then
@@ -64,6 +67,9 @@ if [ 1 -lt "${#}" ]; then
                 uninstall)
                     cics_print_uninstall_help
                     ;;
+                upgrade)
+                    cics_print_upgrade_help
+                    ;;
                 *)
                     cics_print_help
                     exit 1
@@ -85,8 +91,24 @@ cics_list() {
         fi
 
         for filename in "${cics_script_path}/"*; do
-            if [ -f "${filename}" ] && head -1 "${filename}" | grep -q "^${cics_shebang}\$"; then
+            if [ -f "${filename}" ] && head -n 1 "${filename}" | grep -q "^${cics_shebang}\$"; then
                 basename "${filename}"
+            fi
+        done
+    )
+}
+# cics_upgrade
+cics_upgrade() {
+    (
+        if [ 0 -ne "${#}" ]; then
+            cics_print_upgrade_help
+            exit 1
+        fi
+
+        for filename in "${cics_script_path}/"*; do
+            if [ -f "${filename}" ] && head -n 1 "${filename}" | grep -q "^${cics_shebang}\$"; then
+                image="$(tail -n 1 "${filename}")"
+                podman pull "${image}"
             fi
         done
     )
@@ -110,6 +132,13 @@ cics_install() {
                 echo "ERROR: '${entrypoint}' is already installed. Reinstall to change container repository and/or tag."
                 exit 1
             fi
+
+            podman pull "${arg}"
+        done
+
+        for arg in "${@}"; do
+            entrypoint="${arg##*/}"
+            entrypoint="${entrypoint%%:*}"
 
             install_target="${cics_script_path}/${entrypoint}"
             printf '%s\n%s\n' "${cics_shebang}" "${arg}" >"${install_target}"
@@ -178,6 +207,9 @@ case "${cics_command}" in
         ;;
     uninstall)
         cics_uninstall "${@}"
+        ;;
+    upgrade)
+        cics_upgrade "${@}"
         ;;
     *)
         cics_print_help
